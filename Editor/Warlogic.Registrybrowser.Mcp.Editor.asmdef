@@ -1,0 +1,20 @@
+{
+    "name": "Warlogic.Registrybrowser.Mcp.Editor",
+    "rootNamespace": "Warlogic.RegistryBrowser.Mcp.Editor",
+    "references": [
+        "Warlogic.RegistryBrowser.Editor",
+        "MCPForUnity.Editor",
+        "Newtonsoft.Json"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

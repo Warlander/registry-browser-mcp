@@ -1,0 +1,23 @@
+{
+  "name": "com.warlogic.registrybrowser.mcp",
+  "displayName": "Registry Browser MCP",
+  "version": "1.0.0",
+  "unity": "2021.2",
+  "description": "MCP integration for Registry Browser",
+  "author": {
+    "name": "Maciej Cyranowicz",
+    "url": "https://github.com/Warlander"
+  },
+  "license": "MIT",
+  "documentationUrl": "https://github.com/Warlander/registry-browser-mcp/blob/master/README.md",
+  "changelogUrl": "https://github.com/Warlander/registry-browser-mcp/blob/master/CHANGELOG.md",
+  "licensesUrl": "https://github.com/Warlander/registry-browser-mcp/blob/master/LICENSE",
+  "repository": {
+    "url": "https://github.com/Warlander/registry-browser-mcp.git",
+    "type": "git"
+  },
+  "dependencies": {
+    "com.coplaydev.unity-mcp": "9.6.8",
+    "com.warlogic.registrybrowser": "1.7.0"
+  }
+}
