@@ -15,22 +15,22 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
             "Actions:\n" +
             "  status          — List configured registries and installed packages. Returns registry scope, URL, " +
             "and per-package status (latest version, installed version, embed status, git branch, uncommitted changes). " +
-            "Optional filters: scope, package_id.\n" +
+            "Optional filters: Scope, PackageId.\n" +
             "  embed           — Copy a package from its Git repository into Packages/Embeds/ for local editing. " +
-            "Updates manifest to use file:Embeds/{package_id} dependency. Requires package_id. " +
-            "Optional: repository_url (defaults to registry-resolved URL), commit_sha (defaults to latest).\n" +
+            "Updates manifest to use file:Embeds/{PackageId} dependency. Requires PackageId. " +
+            "Optional: RepositoryUrl (defaults to registry-resolved URL), CommitSha (defaults to latest).\n" +
             "  de_embed        — Remove the local embed copy and revert manifest to registry version. " +
-            "DESTRUCTIVE: permanently deletes the Packages/Embeds/{package_id} directory. " +
-            "Fails if the package has uncommitted changes or locked files. Requires package_id. " +
-            "Optional: target_version (defaults to latest registry version).\n" +
+            "DESTRUCTIVE: permanently deletes the Packages/Embeds/{PackageId} directory. " +
+            "Fails if the package has uncommitted changes or locked files. Requires PackageId. " +
+            "Optional: TargetVersion (defaults to latest registry version).\n" +
             "  publish         — Pack the embedded package into a tarball and publish it to the scoped NPM registry. " +
-            "Runs preflight checks (version bump, changelog, uncommitted changes). Requires package_id. " +
-            "Optional: registry_url (defaults to matching scoped registry), confirm_republish (default false). " +
-            "If the version already exists on the registry, publish fails unless confirm_republish=true. " +
+            "Runs preflight checks (version bump, changelog, uncommitted changes). Requires PackageId. " +
+            "Optional: RegistryUrl (defaults to matching scoped registry), ConfirmRepublish (default false). " +
+            "If the version already exists on the registry, publish fails unless ConfirmRepublish=true. " +
             "After successful publish, the embed is removed and manifest is updated to the published version.\n" +
-            "  create_package  — Scaffold a new local UPM package in Packages/Embeds/{package_id}/. " +
+            "  create_package  — Scaffold a new local UPM package in Packages/Embeds/{PackageId}/. " +
             "Creates assembly definitions, folder structure, package.json, README, CHANGELOG, and LICENSE. " +
-            "Requires package_id and display_name. Optional: init_git (defaults to editor preference).",
+            "Requires PackageId and DisplayName. Optional: InitGit (defaults to editor preference).",
         Group = "core")]
     public static class RegistryBrowserMcpTool
     {
@@ -107,7 +107,7 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
 
             var p = new ToolParams(@params);
 
-            var actionResult = p.GetRequired("action");
+            var actionResult = p.GetRequired("Action");
             if (!actionResult.IsSuccess)
             {
                 return new ErrorResponse(actionResult.ErrorMessage);
@@ -142,14 +142,14 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
 
         private static async Task<object> EmbedAsync(ToolParams p)
         {
-            var packageResult = p.GetRequired("package_id", "'package_id' parameter is required for embed.");
+            var packageResult = p.GetRequired("PackageId", "'PackageId' parameter is required for embed.");
             if (!packageResult.IsSuccess)
             {
                 return new ErrorResponse(packageResult.ErrorMessage);
             }
 
-            string repositoryUrl = p.Get("repository_url", null);
-            string commitSha = p.Get("commit_sha", null);
+            string repositoryUrl = p.Get("RepositoryUrl", null);
+            string commitSha = p.Get("CommitSha", null);
 
             await RegistryBrowserAPI.EmbedAsync(packageResult.Value, repositoryUrl, commitSha);
 
@@ -160,13 +160,13 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
 
         private static async Task<object> DeEmbedAsync(ToolParams p)
         {
-            var packageResult = p.GetRequired("package_id", "'package_id' parameter is required for de_embed.");
+            var packageResult = p.GetRequired("PackageId", "'PackageId' parameter is required for de_embed.");
             if (!packageResult.IsSuccess)
             {
                 return new ErrorResponse(packageResult.ErrorMessage);
             }
 
-            string targetVersion = p.Get("target_version", null);
+            string targetVersion = p.Get("TargetVersion", null);
 
             await RegistryBrowserAPI.DeEmbedAsync(packageResult.Value, targetVersion);
 
@@ -177,14 +177,14 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
 
         private static async Task<object> PublishAsync(ToolParams p)
         {
-            var packageResult = p.GetRequired("package_id", "'package_id' parameter is required for publish.");
+            var packageResult = p.GetRequired("PackageId", "'PackageId' parameter is required for publish.");
             if (!packageResult.IsSuccess)
             {
                 return new ErrorResponse(packageResult.ErrorMessage);
             }
 
-            string registryUrl = p.Get("registry_url", null);
-            bool confirmRepublish = p.GetBool("confirm_republish", false);
+            string registryUrl = p.Get("RegistryUrl", null);
+            bool confirmRepublish = p.GetBool("ConfirmRepublish", false);
 
             await RegistryBrowserAPI.PublishAsync(packageResult.Value, registryUrl, confirmRepublish);
 
@@ -195,19 +195,19 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
 
         private static async Task<object> CreatePackageAsync(ToolParams p)
         {
-            var packageResult = p.GetRequired("package_id", "'package_id' parameter is required for create_package.");
+            var packageResult = p.GetRequired("PackageId", "'PackageId' parameter is required for create_package.");
             if (!packageResult.IsSuccess)
             {
                 return new ErrorResponse(packageResult.ErrorMessage);
             }
 
-            var displayResult = p.GetRequired("display_name", "'display_name' parameter is required for create_package.");
+            var displayResult = p.GetRequired("DisplayName", "'DisplayName' parameter is required for create_package.");
             if (!displayResult.IsSuccess)
             {
                 return new ErrorResponse(displayResult.ErrorMessage);
             }
 
-            bool initGit = p.GetBool("init_git", RegistryBrowserConfig.LoadInitGitForNewPackages());
+            bool initGit = p.GetBool("InitGit", RegistryBrowserConfig.LoadInitGitForNewPackages());
 
             await RegistryBrowserAPI.CreatePackageAsync(packageResult.Value, displayResult.Value, initGit);
 
@@ -218,8 +218,8 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
 
         private static async Task<object> StatusAsync(ToolParams p)
         {
-            string filterScope = p.Get("scope", null);
-            string filterPackageId = p.Get("package_id", null);
+            string filterScope = p.Get("Scope", null);
+            string filterPackageId = p.Get("PackageId", null);
 
             StatusResult result = await RegistryBrowserAPI.GetStatusAsync(filterScope, filterPackageId);
 
