@@ -1,7 +1,7 @@
 {
   "name": "com.warlogic.registrybrowser.mcp",
   "displayName": "Registry Browser MCP",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "unity": "2021.2",
   "description": "MCP integration for Registry Browser",
   "author": {
@@ -18,6 +18,6 @@
   },
   "dependencies": {
     "com.unity.ai.assistant": "2.17.0-pre.1",
-    "com.warlogic.registrybrowser": "1.7.0"
+    "com.warlogic.registrybrowser": "1.8.0"
   }
 }
