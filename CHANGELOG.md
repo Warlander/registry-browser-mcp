@@ -4,6 +4,12 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-07-29
+
+### Added
+- New `remove_from_project` action for `manage_registry_browser`. Removes a package from the project: for embedded packages it deletes the local embed and removes the manifest dependency; for registry-installed packages it uses `Client.Remove`.
+- New optional `Force` parameter for `remove_from_project`. When `true`, removes an embedded package even if it has uncommitted local changes. Default is `false`.
+
 ## [2.0.0] - 2026-07-29
 
 ### Changed

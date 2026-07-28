@@ -11,7 +11,7 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
         public class Parameters
         {
             [McpDescription(
-                "Action to perform. Must be one of: status, embed, de_embed, publish, create_package.",
+                "Action to perform. Must be one of: status, embed, de_embed, remove_from_project, publish, create_package.",
                 Required = true)]
             public string Action { get; set; }
 
@@ -55,6 +55,14 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
             public bool ConfirmRepublish { get; set; }
 
             [McpDescription(
+                "Set to true to remove an embedded package even if it has uncommitted local changes. " +
+                "Ignored for registry-installed packages and for actions other than remove_from_project. " +
+                "Default: false.",
+                Required = false,
+                Default = false)]
+            public bool Force { get; set; }
+
+            [McpDescription(
                 "Human-readable display name for create_package action (e.g. 'Registry Browser'). " +
                 "Required for create_package; ignored for all other actions.",
                 Required = false)]
@@ -78,22 +86,27 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
             "Registry Browser for Warlogic packages. Manages scoped-registry packages with embed/de-embed workflows.\n" +
             "\n" +
             "Actions:\n" +
-            "  status          — List configured registries and installed packages. Returns registry scope, URL, " +
+            "  status              — List configured registries and installed packages. Returns registry scope, URL, " +
             "and per-package status (latest version, installed version, embed status, git branch, uncommitted changes). " +
             "Optional filters: Scope, PackageId.\n" +
-            "  embed           — Copy a package from its Git repository into Packages/Embeds/ for local editing. " +
+            "  embed               — Copy a package from its Git repository into Packages/Embeds/ for local editing. " +
             "Updates manifest to use file:Embeds/{PackageId} dependency. Requires PackageId. " +
             "Optional: RepositoryUrl (defaults to registry-resolved URL), CommitSha (defaults to latest).\n" +
-            "  de_embed        — Remove the local embed copy and revert manifest to registry version. " +
+            "  de_embed            — Remove the local embed copy and revert manifest to registry version. " +
             "DESTRUCTIVE: permanently deletes the Packages/Embeds/{PackageId} directory. " +
             "Fails if the package has uncommitted changes or locked files. Requires PackageId. " +
             "Optional: TargetVersion (defaults to latest registry version).\n" +
-            "  publish         — Pack the embedded package into a tarball and publish it to the scoped NPM registry. " +
+            "  remove_from_project — Remove a package from the project. For embedded packages, deletes " +
+            "Packages/Embeds/{PackageId} and removes the dependency from Packages/manifest.json without reinstalling. " +
+            "For registry-installed packages, uses Unity Package Manager Client.Remove. " +
+            "Requires PackageId. Optional: Force (default false). Fails if the embedded package has uncommitted changes " +
+            "or locked files; set Force=true to bypass the uncommitted-changes check.\n" +
+            "  publish             — Pack the embedded package into a tarball and publish it to the scoped NPM registry. " +
             "Runs preflight checks (version bump, changelog, uncommitted changes). Requires PackageId. " +
             "Optional: RegistryUrl (defaults to matching scoped registry), ConfirmRepublish (default false). " +
             "If the version already exists on the registry, publish fails unless ConfirmRepublish=true. " +
             "After successful publish, the embed is removed and manifest is updated to the published version.\n" +
-            "  create_package  — Scaffold a new local UPM package in Packages/Embeds/{PackageId}/. " +
+            "  create_package      — Scaffold a new local UPM package in Packages/Embeds/{PackageId}/. " +
             "Creates assembly definitions, folder structure, package.json, README, CHANGELOG, and LICENSE. " +
             "Requires PackageId and DisplayName. Optional: InitGit (defaults to editor preference).",
             EnabledByDefault = true,
@@ -115,6 +128,8 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
                         return await EmbedAsync(parameters);
                     case "de_embed":
                         return await DeEmbedAsync(parameters);
+                    case "remove_from_project":
+                        return await RemoveFromProjectAsync(parameters);
                     case "publish":
                         return await PublishAsync(parameters);
                     case "create_package":
@@ -123,7 +138,7 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
                         return await StatusAsync(parameters);
                     default:
                         return Response.Error(
-                            $"Unknown action: '{action}'. Supported actions: status, embed, de_embed, publish, create_package.");
+                            $"Unknown action: '{action}'. Supported actions: status, embed, de_embed, remove_from_project, publish, create_package.");
                 }
             }
             catch (Exception ex)
@@ -158,6 +173,20 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
             return Response.Success(
                 $"De-embedded {parameters.PackageId}.",
                 new { package_id = parameters.PackageId });
+        }
+
+        private static async Task<object> RemoveFromProjectAsync(Parameters parameters)
+        {
+            if (string.IsNullOrWhiteSpace(parameters.PackageId))
+            {
+                return Response.Error("'PackageId' parameter is required for remove_from_project.");
+            }
+
+            await RegistryBrowserAPI.RemoveFromProjectAsync(parameters.PackageId, parameters.Force);
+
+            return Response.Success(
+                $"Removed {parameters.PackageId} from project.",
+                new { package_id = parameters.PackageId, force = parameters.Force });
         }
 
         private static async Task<object> PublishAsync(Parameters parameters)
