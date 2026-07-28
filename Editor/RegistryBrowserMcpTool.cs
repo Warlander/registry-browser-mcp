@@ -1,15 +1,80 @@
 using System;
 using System.Threading.Tasks;
-using MCPForUnity.Editor.Helpers;
-using MCPForUnity.Editor.Tools;
-using Newtonsoft.Json.Linq;
+using Unity.AI.MCP.Editor.Helpers;
+using Unity.AI.MCP.Editor.ToolRegistry;
 using Warlogic.RegistryBrowser;
 
 namespace Warlogic.RegistryBrowser.Mcp.Editor
 {
-    [McpForUnityTool(
-        "manage_registry_browser",
-        Description =
+    public static class RegistryBrowserMcpTool
+    {
+        public class Parameters
+        {
+            [McpDescription(
+                "Action to perform. Must be one of: status, embed, de_embed, publish, create_package.",
+                Required = true)]
+            public string Action { get; set; }
+
+            [McpDescription(
+                "Package ID in reverse-domain format (e.g. com.warlogic.registrybrowser). " +
+                "Required for embed, de_embed, publish, and create_package. " +
+                "Optional for status — when provided, filters output to this package only.",
+                Required = false)]
+            public string PackageId { get; set; }
+
+            [McpDescription(
+                "Git repository HTTPS URL for embed action (e.g. https://github.com/Warlander/registry-browser.git). " +
+                "Optional; if omitted, the tool resolves the repository URL from the package's registry metadata.",
+                Required = false)]
+            public string RepositoryUrl { get; set; }
+
+            [McpDescription(
+                "Git commit SHA to checkout for embed action. " +
+                "Optional; if omitted, the tool fetches and uses the latest commit from the repository.",
+                Required = false)]
+            public string CommitSha { get; set; }
+
+            [McpDescription(
+                "Target version string for de_embed action (e.g. 1.2.3). " +
+                "Optional; if omitted, the tool resolves the latest version from the registry and updates the manifest to that version.",
+                Required = false)]
+            public string TargetVersion { get; set; }
+
+            [McpDescription(
+                "NPM registry URL for publish action (e.g. https://upm.maciejcyranowicz.com). " +
+                "Optional; if omitted, the tool resolves the registry URL from the configured scoped registries by matching the package scope prefix.",
+                Required = false)]
+            public string RegistryUrl { get; set; }
+
+            [McpDescription(
+                "Set to true to allow publishing a version that already exists on the registry. " +
+                "When true, the existing version is unpublished before the new tarball is published. " +
+                "Default: false.",
+                Required = false,
+                Default = false)]
+            public bool ConfirmRepublish { get; set; }
+
+            [McpDescription(
+                "Human-readable display name for create_package action (e.g. 'Registry Browser'). " +
+                "Required for create_package; ignored for all other actions.",
+                Required = false)]
+            public string DisplayName { get; set; }
+
+            [McpDescription(
+                "Initialize a Git repository in the newly created package directory for create_package. " +
+                "Optional; if omitted, uses the editor preference from RegistryBrowserConfig.",
+                Required = false)]
+            public bool? InitGit { get; set; }
+
+            [McpDescription(
+                "Filter status output to a specific registry scope (e.g. com.warlogic). " +
+                "Optional; only packages under this scope are returned.",
+                Required = false)]
+            public string Scope { get; set; }
+        }
+
+        [McpTool(
+            "manage_registry_browser",
             "Registry Browser for Warlogic packages. Manages scoped-registry packages with embed/de-embed workflows.\n" +
             "\n" +
             "Actions:\n" +
@@ -31,199 +96,110 @@ namespace Warlogic.RegistryBrowser.Mcp.Editor
             "  create_package  — Scaffold a new local UPM package in Packages/Embeds/{PackageId}/. " +
             "Creates assembly definitions, folder structure, package.json, README, CHANGELOG, and LICENSE. " +
             "Requires PackageId and DisplayName. Optional: InitGit (defaults to editor preference).",
-        Group = "core")]
-    public static class RegistryBrowserMcpTool
-    {
-        public class Parameters
+            EnabledByDefault = true,
+            Groups = new[] { "core" })]
+        public static async Task<object> HandleCommand(Parameters parameters)
         {
-            [ToolParameter(
-                "Action to perform. Must be one of: status, embed, de_embed, publish, create_package.")]
-            public string Action { get; set; }
-
-            [ToolParameter(
-                "Package ID in reverse-domain format (e.g. com.warlogic.registrybrowser). " +
-                "Required for embed, de_embed, publish, and create_package. " +
-                "Optional for status — when provided, filters output to this package only.",
-                Required = false)]
-            public string PackageId { get; set; }
-
-            [ToolParameter(
-                "Git repository HTTPS URL for embed action (e.g. https://github.com/Warlander/registry-browser.git). " +
-                "Optional; if omitted, the tool resolves the repository URL from the package's registry metadata.",
-                Required = false)]
-            public string RepositoryUrl { get; set; }
-
-            [ToolParameter(
-                "Git commit SHA to checkout for embed action. " +
-                "Optional; if omitted, the tool fetches and uses the latest commit from the repository.",
-                Required = false)]
-            public string CommitSha { get; set; }
-
-            [ToolParameter(
-                "Target version string for de_embed action (e.g. 1.2.3). " +
-                "Optional; if omitted, the tool resolves the latest version from the registry and updates the manifest to that version.",
-                Required = false)]
-            public string TargetVersion { get; set; }
-
-            [ToolParameter(
-                "NPM registry URL for publish action (e.g. https://upm.maciejcyranowicz.com). " +
-                "Optional; if omitted, the tool resolves the registry URL from the configured scoped registries by matching the package scope prefix.",
-                Required = false)]
-            public string RegistryUrl { get; set; }
-
-            [ToolParameter(
-                "Set to true to allow publishing a version that already exists on the registry. " +
-                "When true, the existing version is unpublished before the new tarball is published. " +
-                "Default: false.",
-                Required = false,
-                DefaultValue = "false")]
-            public bool ConfirmRepublish { get; set; }
-
-            [ToolParameter(
-                "Human-readable display name for create_package action (e.g. 'Registry Browser'). " +
-                "Required for create_package; ignored for all other actions.",
-                Required = false)]
-            public string DisplayName { get; set; }
-
-            [ToolParameter(
-                "Initialize a Git repository in the newly created package directory for create_package. " +
-                "Optional; if omitted, uses the editor preference from RegistryBrowserConfig.",
-                Required = false)]
-            public bool InitGit { get; set; }
-
-            [ToolParameter(
-                "Filter status output to a specific registry scope (e.g. com.warlogic). " +
-                "Optional; only packages under this scope are returned.",
-                Required = false)]
-            public string Scope { get; set; }
-        }
-
-        public static async Task<object> HandleCommand(JObject @params)
-        {
-            if (@params == null)
+            if (parameters == null)
             {
-                return new ErrorResponse("Parameters cannot be null.");
+                return Response.Error("Parameters cannot be null.");
             }
 
-            var p = new ToolParams(@params);
-
-            var actionResult = p.GetRequired("Action");
-            if (!actionResult.IsSuccess)
-            {
-                return new ErrorResponse(actionResult.ErrorMessage);
-            }
-
-            string action = actionResult.Value.ToLowerInvariant();
+            string action = parameters.Action?.ToLowerInvariant();
 
             try
             {
                 switch (action)
                 {
                     case "embed":
-                        return await EmbedAsync(p);
+                        return await EmbedAsync(parameters);
                     case "de_embed":
-                        return await DeEmbedAsync(p);
+                        return await DeEmbedAsync(parameters);
                     case "publish":
-                        return await PublishAsync(p);
+                        return await PublishAsync(parameters);
                     case "create_package":
-                        return await CreatePackageAsync(p);
+                        return await CreatePackageAsync(parameters);
                     case "status":
-                        return await StatusAsync(p);
+                        return await StatusAsync(parameters);
                     default:
-                        return new ErrorResponse(
+                        return Response.Error(
                             $"Unknown action: '{action}'. Supported actions: status, embed, de_embed, publish, create_package.");
                 }
             }
             catch (Exception ex)
             {
-                return new ErrorResponse(ex.Message, new { stackTrace = ex.StackTrace });
+                return Response.Error(ex.Message, new { stackTrace = ex.StackTrace });
             }
         }
 
-        private static async Task<object> EmbedAsync(ToolParams p)
+        private static async Task<object> EmbedAsync(Parameters parameters)
         {
-            var packageResult = p.GetRequired("PackageId", "'PackageId' parameter is required for embed.");
-            if (!packageResult.IsSuccess)
+            if (string.IsNullOrWhiteSpace(parameters.PackageId))
             {
-                return new ErrorResponse(packageResult.ErrorMessage);
+                return Response.Error("'PackageId' parameter is required for embed.");
             }
 
-            string repositoryUrl = p.Get("RepositoryUrl", null);
-            string commitSha = p.Get("CommitSha", null);
+            await RegistryBrowserAPI.EmbedAsync(parameters.PackageId, parameters.RepositoryUrl, parameters.CommitSha);
 
-            await RegistryBrowserAPI.EmbedAsync(packageResult.Value, repositoryUrl, commitSha);
-
-            return new SuccessResponse(
-                $"Embedded {packageResult.Value}.",
-                new { package_id = packageResult.Value });
+            return Response.Success(
+                $"Embedded {parameters.PackageId}.",
+                new { package_id = parameters.PackageId });
         }
 
-        private static async Task<object> DeEmbedAsync(ToolParams p)
+        private static async Task<object> DeEmbedAsync(Parameters parameters)
         {
-            var packageResult = p.GetRequired("PackageId", "'PackageId' parameter is required for de_embed.");
-            if (!packageResult.IsSuccess)
+            if (string.IsNullOrWhiteSpace(parameters.PackageId))
             {
-                return new ErrorResponse(packageResult.ErrorMessage);
+                return Response.Error("'PackageId' parameter is required for de_embed.");
             }
 
-            string targetVersion = p.Get("TargetVersion", null);
+            await RegistryBrowserAPI.DeEmbedAsync(parameters.PackageId, parameters.TargetVersion);
 
-            await RegistryBrowserAPI.DeEmbedAsync(packageResult.Value, targetVersion);
-
-            return new SuccessResponse(
-                $"De-embedded {packageResult.Value}.",
-                new { package_id = packageResult.Value });
+            return Response.Success(
+                $"De-embedded {parameters.PackageId}.",
+                new { package_id = parameters.PackageId });
         }
 
-        private static async Task<object> PublishAsync(ToolParams p)
+        private static async Task<object> PublishAsync(Parameters parameters)
         {
-            var packageResult = p.GetRequired("PackageId", "'PackageId' parameter is required for publish.");
-            if (!packageResult.IsSuccess)
+            if (string.IsNullOrWhiteSpace(parameters.PackageId))
             {
-                return new ErrorResponse(packageResult.ErrorMessage);
+                return Response.Error("'PackageId' parameter is required for publish.");
             }
 
-            string registryUrl = p.Get("RegistryUrl", null);
-            bool confirmRepublish = p.GetBool("ConfirmRepublish", false);
+            await RegistryBrowserAPI.PublishAsync(parameters.PackageId, parameters.RegistryUrl, parameters.ConfirmRepublish);
 
-            await RegistryBrowserAPI.PublishAsync(packageResult.Value, registryUrl, confirmRepublish);
-
-            return new SuccessResponse(
-                $"Published {packageResult.Value}.",
-                new { package_id = packageResult.Value });
+            return Response.Success(
+                $"Published {parameters.PackageId}.",
+                new { package_id = parameters.PackageId });
         }
 
-        private static async Task<object> CreatePackageAsync(ToolParams p)
+        private static async Task<object> CreatePackageAsync(Parameters parameters)
         {
-            var packageResult = p.GetRequired("PackageId", "'PackageId' parameter is required for create_package.");
-            if (!packageResult.IsSuccess)
+            if (string.IsNullOrWhiteSpace(parameters.PackageId))
             {
-                return new ErrorResponse(packageResult.ErrorMessage);
+                return Response.Error("'PackageId' parameter is required for create_package.");
             }
 
-            var displayResult = p.GetRequired("DisplayName", "'DisplayName' parameter is required for create_package.");
-            if (!displayResult.IsSuccess)
+            if (string.IsNullOrWhiteSpace(parameters.DisplayName))
             {
-                return new ErrorResponse(displayResult.ErrorMessage);
+                return Response.Error("'DisplayName' parameter is required for create_package.");
             }
 
-            bool initGit = p.GetBool("InitGit", RegistryBrowserConfig.LoadInitGitForNewPackages());
+            bool initGit = parameters.InitGit ?? RegistryBrowserConfig.LoadInitGitForNewPackages();
 
-            await RegistryBrowserAPI.CreatePackageAsync(packageResult.Value, displayResult.Value, initGit);
+            await RegistryBrowserAPI.CreatePackageAsync(parameters.PackageId, parameters.DisplayName, initGit);
 
-            return new SuccessResponse(
-                $"Created local package {packageResult.Value} ({displayResult.Value}).",
-                new { package_id = packageResult.Value, display_name = displayResult.Value, init_git = initGit });
+            return Response.Success(
+                $"Created local package {parameters.PackageId} ({parameters.DisplayName}).",
+                new { package_id = parameters.PackageId, display_name = parameters.DisplayName, init_git = initGit });
         }
 
-        private static async Task<object> StatusAsync(ToolParams p)
+        private static async Task<object> StatusAsync(Parameters parameters)
         {
-            string filterScope = p.Get("Scope", null);
-            string filterPackageId = p.Get("PackageId", null);
+            StatusResult result = await RegistryBrowserAPI.GetStatusAsync(parameters.Scope, parameters.PackageId);
 
-            StatusResult result = await RegistryBrowserAPI.GetStatusAsync(filterScope, filterPackageId);
-
-            return new SuccessResponse("Status retrieved.", result);
+            return Response.Success("Status retrieved.", result);
         }
     }
 }

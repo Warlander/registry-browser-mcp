@@ -15,7 +15,7 @@ https://github.com/Warlander/registry-browser-mcp.git
 
 To install a specific release, append the tag:
 ```
-https://github.com/Warlander/registry-browser-mcp.git#1.0.1
+https://github.com/Warlander/registry-browser-mcp.git#2.0.0
 ```
 
 ## Via Scoped Registry
@@ -32,7 +32,7 @@ Add the Warlogic registry to your `Packages/manifest.json`:
     }
   ],
   "dependencies": {
-    "com.warlogic.registrybrowser.mcp": "1.0.1"
+    "com.warlogic.registrybrowser.mcp": "2.0.0"
   }
 }
 ```
@@ -41,13 +41,13 @@ Then open **Window > Package Manager** and look for `com.warlogic.registrybrowse
 
 # Prerequisites
 
-- **com.coplaydev.unity-mcp** — the underlying MCP framework this package integrates with.
+- **com.unity.ai.assistant** — the official Unity AI Assistant package, which provides the Unity MCP framework this package integrates with.
 - **com.warlogic.registrybrowser** — the Registry Browser tool whose operations are exposed via MCP.
 
 # Setup
 
-1. Ensure both `com.coplaydev.unity-mcp` and `com.warlogic.registrybrowser` are installed in your project.
-2. Install this package. The `manage_registry_browser` MCP tool is automatically registered on startup.
+1. Ensure `com.unity.ai.assistant` and `com.warlogic.registrybrowser` are installed in your project.
+2. Install this package. The `manage_registry_browser` MCP tool is automatically discovered and registered by Unity's MCP tool registry.
 
 # Usage
 

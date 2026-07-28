@@ -3,7 +3,7 @@
     "rootNamespace": "Warlogic.RegistryBrowser.Mcp.Editor",
     "references": [
         "Warlogic.RegistryBrowser.Editor",
-        "MCPForUnity.Editor",
+        "Unity.AI.MCP.Editor",
         "Newtonsoft.Json"
     ],
     "includePlatforms": [
